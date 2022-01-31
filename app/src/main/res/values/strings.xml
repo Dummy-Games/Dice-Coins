@@ -4,4 +4,21 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="score">SCORE:</string>
     <string name="play_again">Play again!</string>
+    <string name="facebook_app_id">4875787165821818</string>
+
+    <string name="image_view">Image View</string>
+    <string name="dl_downloading">Downloading file…</string>
+    <string name="dl_downloading2">Downloading File</string>
+    <string name="fl_chooser">File Chooser</string>
+    <string name="went_wrong">Something Went Wrong!</string>
+    <string name="check_connection">Please check your Network Connection!</string>
+    <string name="share_w_friends">Share with your Friends</string>
+
+    <string name="bonus">Collect the same cards and get a BONUS</string>
+    <string name="click_and_win">Click and WIN</string>
+    <string name="download">DOWNLOAD...</string>
+    <string name="try_your_luck">Try your luck</string>
+    <string name="play">Play</string>
+    <string name="close_game">Close Game</string>
+    <string name="menu">Menu</string>
 </resources>

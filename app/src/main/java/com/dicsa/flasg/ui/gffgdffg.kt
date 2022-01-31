@@ -1,16 +1,33 @@
 package com.dicsa.flasg.ui
 
+import android.content.Context
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
 import android.view.View
-import android.widget.*
+import android.widget.* // ktlint-disable no-wildcard-imports
+import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.appsflyer.AppsFlyerConversionListener
+import com.appsflyer.AppsFlyerLib
 import com.dicsa.flasg.R
 import com.dicsa.flasg.util.getDrawableId
+import com.facebook.applinks.AppLinkData
+import com.google.android.gms.ads.identifier.AdvertisingIdClient
+import com.onesignal.OneSignal
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
