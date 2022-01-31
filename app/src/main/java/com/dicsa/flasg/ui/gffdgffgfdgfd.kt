@@ -82,6 +82,7 @@ private class Manager(private val context: Context) {
 
     val isPlainUser = Single.create<Boolean> {
         it.onSuccess(checks() && tracks() != "1")
+
     }
 
     private fun checks(): Boolean {
