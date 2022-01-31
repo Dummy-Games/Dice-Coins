@@ -10,7 +10,6 @@ import android.util.Log
 import android.view.View
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.navOptions
 import com.appsflyer.AppsFlyerConversionListener
@@ -22,13 +21,11 @@ import com.google.android.gms.ads.identifier.AdvertisingIdClient
 import com.onesignal.OneSignal
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.io.File
 
 @SuppressLint("CustomSplashScreen")
@@ -39,11 +36,14 @@ class gffdgffgfdgfd : Fragment(R.layout.hdgfgfdfgfdgfd) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        manager.isPlainUser.doOnSuccess { isPlainUser ->
+        manager.isPlainUser.subscribe { isPlainUser ->
             if (isPlainUser) {
-                manager.url.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                manager.url.observeOn(AndroidSchedulers.mainThread())
                     .subscribe { result ->
-                        startWebView(result)
+                        Log.e("EXC", "Exception: $result")
+                        requireActivity().runOnUiThread {
+                            startWebView(result)
+                        }
                     }
             } else {
                 Completable.create {
@@ -57,11 +57,10 @@ class gffdgffgfdgfd : Fragment(R.layout.hdgfgfdfgfdgfd) {
                     )
                 }.subscribeOn(AndroidSchedulers.mainThread()).subscribe()
             }
-        }.subscribe()
+        }
     }
 
     private fun startWebView(url: String) {
-        // starting web activity
         startActivity(
             Intent(requireContext(), WebViewActivity::class.java)
                 .putExtra(
@@ -82,7 +81,8 @@ private sealed interface DataWrapper<out T> {
 private class Manager(private val context: Context) {
 
     val isPlainUser = Single.create<Boolean> {
-        it.onSuccess(checks() && tracks() != "1")
+//        it.onSuccess(checks() && tracks() != "1")
+        it.onSuccess(true)
     }
 
     private fun checks(): Boolean {
@@ -151,74 +151,78 @@ private class Manager(private val context: Context) {
     }
 
     private val urlFromRemote =
-        data.filter { it.first is DataWrapper.Data && it.second is DataWrapper.Data }.map {
-            val appsFlyerMap = (it.first as DataWrapper.Data).value
-            val tempDeepLink = (it.second as DataWrapper.Data).value
-            val deepLink = tempDeepLink?.replace("myapp://", "")
-            val tempCompaign = appsFlyerMap?.get("campaign")
-            val compaign = tempCompaign.toString().replace("||", "&")
-                .replace("_", "=")
+        data.map { Log.d("EXC", "first: ${it.first}, second: ${it.second}"); it }
+            .filter { it.first is DataWrapper.Data && it.second is DataWrapper.Data }.map {
+                val appsFlyerMap = (it.first as DataWrapper.Data).value
+                val tempDeepLink = (it.second as DataWrapper.Data).value
+                val deepLink = tempDeepLink?.replace("myapp://", "")
+                val tempCompaign = appsFlyerMap?.get("campaign")
+                val compaign = tempCompaign.toString().replace("||", "&")
+                    .replace("_", "=")
 
-            if (tempCompaign == "null" && deepLink.toString() == "null") {
-                OneSignal.sendTag("key2", "organic")
-            } else if (tempCompaign != "null") {
-                OneSignal.sendTag(
-                    "key2",
-                    tempCompaign.toString().substringAfter("sub1_").substringBefore("||sub2")
-                )
-            } else if (deepLink.toString() != "null") {
-                OneSignal.sendTag(
-                    "key2",
-                    tempDeepLink.toString().substringAfter("sub1_").substringBefore("||sub2")
-                )
-            }
-
-            val url = URL_VALUE.toUri().buildUpon().apply {
-                appendQueryParameter("gadid", getAdvId())
-                appendQueryParameter(
-                    "af_id",
-                    AppsFlyerLib.getInstance().getAppsFlyerUID(context)
-                )
-                appendQueryParameter("orig_cost", appsFlyerMap?.get("orig_cost").toString())
-                appendQueryParameter("adset_id", appsFlyerMap?.get("adset_id").toString())
-                appendQueryParameter("campaign_id", appsFlyerMap?.get("campaign_id").toString())
-                appendQueryParameter("source", appsFlyerMap?.get("media_source").toString())
-                appendQueryParameter("bundle", context.packageName)
-                appendQueryParameter("af_siteid", appsFlyerMap?.get("af_siteid").toString())
-                appendQueryParameter("currency", appsFlyerMap?.get("currency").toString())
-                appendQueryParameter("adset", encode(appsFlyerMap?.get("adset").toString()))
-                appendQueryParameter("adgroup", encode(appsFlyerMap?.get("adgroup").toString()))
-                if (deepLink != "null" && deepLink.toString().contains("sub")) {
-                    appendQueryParameter(
-                        "app_campaign",
-                        encode(deepLink.toString().replace("||", "&").replace("_", "="))
+                if (tempCompaign == "null" && deepLink.toString() == "null") {
+                    OneSignal.sendTag("key2", "organic")
+                } else if (tempCompaign != "null") {
+                    OneSignal.sendTag(
+                        "key2",
+                        tempCompaign.toString().substringAfter("sub1_").substringBefore("||sub2")
                     )
-                } else {
-                    val c = appsFlyerMap?.get("c")?.toString()
-                    if (c != "null" && c.toString().contains("sub")) {
+                } else if (deepLink.toString() != "null") {
+                    OneSignal.sendTag(
+                        "key2",
+                        tempDeepLink.toString().substringAfter("sub1_").substringBefore("||sub2")
+                    )
+                }
+
+                val url = URL_VALUE.toUri().buildUpon().apply {
+                    appendQueryParameter("gadid", getAdvId())
+                    appendQueryParameter(
+                        "af_id",
+                        AppsFlyerLib.getInstance().getAppsFlyerUID(context)
+                    )
+                    appendQueryParameter("orig_cost", appsFlyerMap?.get("orig_cost").toString())
+                    appendQueryParameter("adset_id", appsFlyerMap?.get("adset_id").toString())
+                    appendQueryParameter("campaign_id", appsFlyerMap?.get("campaign_id").toString())
+                    appendQueryParameter("source", appsFlyerMap?.get("media_source").toString())
+                    appendQueryParameter("bundle", context.packageName)
+                    appendQueryParameter("af_siteid", appsFlyerMap?.get("af_siteid").toString())
+                    appendQueryParameter("currency", appsFlyerMap?.get("currency").toString())
+                    appendQueryParameter("adset", encode(appsFlyerMap?.get("adset").toString()))
+                    appendQueryParameter("adgroup", encode(appsFlyerMap?.get("adgroup").toString()))
+                    if (deepLink != "null" && deepLink.toString().contains("sub")) {
                         appendQueryParameter(
                             "app_campaign",
-                            encode(c.toString().replace("||", "&").replace("_", "="))
+                            encode(deepLink.toString().replace("||", "&").replace("_", "="))
                         )
                     } else {
-                        appendQueryParameter(
-                            "app_campaign",
-                            encode(
-                                compaign
+                        val c = appsFlyerMap?.get("c")?.toString()
+                        if (c != "null" && c.toString().contains("sub")) {
+                            appendQueryParameter(
+                                "app_campaign",
+                                encode(c.toString().replace("||", "&").replace("_", "="))
                             )
-                        )
+                        } else {
+                            appendQueryParameter(
+                                "app_campaign",
+                                encode(
+                                    compaign
+                                )
+                            )
+                        }
                     }
-                }
-            }.build()
-            Log.e("URL", url.toString())
-            url.toString()
-        }
+                }.build()
+                Log.e("URL", url.toString())
+                url.toString()
+            }.subscribeOn(Schedulers.io())
 
-    val url = urlFromLocal.flatMap {
+    val url = urlFromLocal.flatMapObservable {
+        Log.e("EXC", "CALLED $it")
         if (it is DataWrapper.Data) {
-            Single.just(it.value)
+            Log.e("EXC", "CALLED1")
+            Observable.just(it.value)
         } else {
-            urlFromRemote.singleOrError()
+            Log.e("EXC", "CALLED2")
+            urlFromRemote
         }
     }
 
